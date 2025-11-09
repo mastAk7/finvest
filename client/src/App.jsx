@@ -17,33 +17,73 @@ function App() {
     // check current session
     (async function () {
       try {
-        const r = await fetch(API_BASE + '/auth/me', { 
-          credentials: 'include',
-          headers: {
-            'Accept': 'application/json'
+        // Validate API_BASE is set correctly
+        if (!API_BASE || API_BASE === 'http://localhost:3000') {
+          console.warn('API_BASE not configured. Using default localhost. This will fail in production.');
+        }
+        
+        // Create abort controller for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        try {
+          const r = await fetch(API_BASE + '/auth/me', { 
+            credentials: 'include',
+            headers: {
+              'Accept': 'application/json'
+            },
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!r.ok) {
+            // If 401/403, user is not logged in - this is fine
+            if (r.status === 401 || r.status === 403) {
+              setAccount(null);
+              setScreen("landing");
+              setMode(null);
+              return;
+            }
+            throw new Error(`Session check failed: ${r.status} ${r.statusText}`);
           }
-        });
-        if (!r.ok) throw new Error('Session check failed');
-        const data = await r.json();
-        if (data?.user) {
-          setAccount(data.user);
-          if (data.user.accountType) {
-            setMode(data.user.accountType);
-            setScreen('dashboard');
+          
+          const data = await r.json();
+          if (data?.user) {
+            setAccount(data.user);
+            if (data.user.accountType) {
+              setMode(data.user.accountType);
+              setScreen('dashboard');
+            }
+            // Update user data if available
+            if (data.user.name || data.user.age || data.user.phone) {
+              setUser(prev => ({
+                ...prev,
+                name: data.user.name || prev.name,
+                age: data.user.age || prev.age,
+                phone: data.user.phone || prev.phone
+              }));
+            }
+          } else {
+            // No user in response - not logged in
+            setAccount(null);
+            setScreen("landing");
+            setMode(null);
           }
-          // Update user data if available
-          if (data.user.name || data.user.age || data.user.phone) {
-            setUser(prev => ({
-              ...prev,
-              name: data.user.name || prev.name,
-              age: data.user.age || prev.age,
-              phone: data.user.phone || prev.phone
-            }));
-          }
+        } finally {
+          clearTimeout(timeoutId);
         }
       } catch (err) {
-        console.warn('Session check failed:', err);
-        // Reset states on session error
+        // Only log error if it's not a network/CORS issue that we can handle gracefully
+        if (err.name === 'AbortError') {
+          console.warn('Session check timed out. User may not be logged in.');
+        } else if (err.message?.includes('Failed to fetch') || err.message?.includes('CORS')) {
+          console.warn('Session check failed - API may not be reachable. Check VITE_API_BASE environment variable.');
+          console.warn('Current API_BASE:', API_BASE);
+        } else {
+          console.warn('Session check failed:', err);
+        }
+        // Reset states on session error - user is not logged in
         setAccount(null);
         setScreen("landing");
         setMode(null);
