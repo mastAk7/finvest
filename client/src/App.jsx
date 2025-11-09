@@ -204,6 +204,9 @@ function App() {
             user={user} 
             account={account} 
             onBack={handleLogout}  // Changed from resetFlow to handleLogout for logged-in users
+            setAccount={setAccount}
+            setScreen={setScreen}
+            setMode={setMode}
           />
         ) : (
           <>
@@ -551,7 +554,7 @@ function DetailsForm({ mode, user, onChange, onAuthSuccess, onBack }) {
 
 /* ----------------- Dashboard ----------------- */
 
-function Dashboard({ mode, user, account, onBack }) {
+function Dashboard({ mode, user, account, onBack, setAccount, setScreen, setMode }) {
   const isInvestor = mode === "investor";
   const greeting = isInvestor ? "Investor dashboard" : "Borrower dashboard";
 
@@ -585,7 +588,7 @@ function Dashboard({ mode, user, account, onBack }) {
       <div className="dash-grid">
         {isInvestor ? <InvestorCards /> : (
           <>
-            <BorrowerCards />
+            <BorrowerCards setAccount={setAccount} setScreen={setScreen} setMode={setMode} />
             <ActivityPanel isInvestor={isInvestor} />
           </>
         )}
@@ -1179,7 +1182,7 @@ function InvestorCards() {
   );
 }
 
-function BorrowerCards() {
+function BorrowerCards({ setAccount, setScreen, setMode }) {
   const [slangText, setSlangText] = useState('');
   const [loading, setLoading] = useState(false);
   const [pitch, setPitch] = useState(null);
