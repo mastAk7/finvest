@@ -37,4 +37,3 @@ export async function attachUser(req, res, next) {
         next();
     }
 }
-}
