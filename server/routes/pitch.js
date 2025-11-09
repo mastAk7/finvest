@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 import Pitch from '../models/pitch.js';
 
 const router = express.Router();
-const MODEL_API_URL = 'http://localhost:5001';
+const MODEL_API_URL = process.env.MODEL_API_URL || 'https://finvest-2p2y.onrender.com';
 
 router.post('/generate', async (req, res) => {
     try {
@@ -24,7 +24,12 @@ router.post('/generate', async (req, res) => {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
+            let errorData;
+            try {
+                errorData = await response.json();
+            } catch (e) {
+                errorData = { error: `Model API returned status ${response.status}` };
+            }
             throw new Error(errorData.error || 'Failed to generate pitch');
         }
 
@@ -39,9 +44,15 @@ router.post('/generate', async (req, res) => {
         res.json(result.data);
     } catch (err) {
         console.error('Pitch generation error:', err);
+        // Check if it's a connection error
+        if (err.message.includes('fetch failed') || err.message.includes('ECONNREFUSED') || err.message.includes('ENOTFOUND')) {
+            return res.status(503).json({ 
+                error: 'Model service is currently unavailable. Please try again in a moment.',
+                details: 'The pitch generation service may be starting up or temporarily down.'
+            });
+        }
         res.status(500).json({ 
-            error: err.message || 'Failed to generate pitch',
-            details: err.stack
+            error: err.message || 'Failed to generate pitch'
         });
     }
 });
