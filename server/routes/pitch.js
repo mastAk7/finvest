@@ -113,16 +113,27 @@ router.post('/submit', async (req, res) => {
 // Get all pitches (for investors)
 router.get('/list', async (req, res) => {
     try {
+        // Debug session state
+        console.log('Session check:', {
+            hasSession: !!req.session,
+            hasUserId: !!req.session?.userId,
+            hasUser: !!req.session?.user,
+            accountType: req.session?.user?.accountType
+        });
+
         // Check if user is authenticated and is an investor
         if (!req.session.user) {
+            console.log('No user in session');
             return res.status(401).json({ error: 'Please log in to view pitches' });
         }
         
         if (req.session.user.accountType !== 'investor') {
+            console.log('User is not an investor:', req.session.user.accountType);
             return res.status(403).json({ error: 'Only investors can view all pitches' });
         }
 
         const pitches = await Pitch.find().sort({ createdAt: -1 });
+        console.log(`Found ${pitches.length} pitches`);
         res.json({ pitches });
     } catch (err) {
         console.error('Error fetching pitches:', err);

@@ -65,7 +65,10 @@ NODE_ENV=production
 
 5. **SELECTOR_API_URL**: Your deployed selector service URL
 
-6. **CLIENT_ORIGIN**: Your frontend URL (or `http://localhost:5173` for local dev)
+6. **CLIENT_ORIGIN**: 
+   - For local dev: `http://localhost:5173`
+   - For production: `https://your-frontend-url.com`
+   - For both: `http://localhost:5173,https://your-frontend-url.com` (comma-separated)
 
 ### Step 4: Deploy
 

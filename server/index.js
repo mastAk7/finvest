@@ -14,9 +14,22 @@ const port = process.env.PORT || 3000;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+// Allow multiple origins for CORS
+const allowedOrigins = process.env.CLIENT_ORIGIN 
+    ? process.env.CLIENT_ORIGIN.split(',').map(origin => origin.trim())
+    : ['http://localhost:5173'];
+
 app.use(cors({ 
-    origin: CLIENT_ORIGIN,
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -25,6 +38,13 @@ app.use(cors({
 app.use(express.static('public'));
 
 // Session configuration
+// Determine if we should use secure cookies (only for HTTPS)
+const isProduction = process.env.NODE_ENV === 'production';
+const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+const isLocalhost = clientOrigin.includes('localhost') || clientOrigin.includes('127.0.0.1');
+// Only use secure cookies in production AND when not using localhost
+const useSecureCookie = isProduction && !isLocalhost;
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'replace-me',
@@ -33,7 +53,7 @@ app.use(
     cookie: {
       maxAge: 1000 * 60 * 60 * 24,
       sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      secure: useSecureCookie,
       httpOnly: true
     },
     name: 'finvest.sid'
