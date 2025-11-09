@@ -61,16 +61,30 @@ router.post('/generate', async (req, res) => {
 router.post('/submit', async (req, res) => {
     try {
         // Debug log to check session state
-        console.log('Session state:', {
+        console.log('Submit pitch - Session state:', {
             hasSession: !!req.session,
             sessionID: req.sessionID,
-            user: req.session?.user,
-            cookies: req.cookies
+            hasUserId: !!req.session?.userId,
+            hasUser: !!req.session?.user,
+            userId: req.session?.userId,
+            cookies: Object.keys(req.cookies || {})
         });
 
         // Check if user is authenticated
-        if (!req.session.user) {
+        if (!req.session?.user && !req.session?.userId) {
+            console.log('No user in session for submit');
             return res.status(401).json({ error: 'Please log in to submit a pitch' });
+        }
+
+        // If we have userId but no user object, try to fetch it
+        if (req.session?.userId && !req.session?.user) {
+            const User = (await import('../models/User.js')).default;
+            const user = await User.findById(req.session.userId).select('-password');
+            if (user) {
+                req.session.user = user;
+            } else {
+                return res.status(401).json({ error: 'Session expired. Please log in again.' });
+            }
         }
 
         const { professionalPitch, originalText, extractedInfo } = req.body;
@@ -144,9 +158,30 @@ router.get('/list', async (req, res) => {
 // Get my pitches (for borrowers)
 router.get('/my-pitches', async (req, res) => {
     try {
+        // Debug session state
+        console.log('My pitches - Session check:', {
+            hasSession: !!req.session,
+            sessionID: req.sessionID,
+            hasUserId: !!req.session?.userId,
+            hasUser: !!req.session?.user,
+            userId: req.session?.userId
+        });
+
         // Check if user is authenticated
-        if (!req.session.user) {
+        if (!req.session?.user && !req.session?.userId) {
+            console.log('No user in session for my-pitches');
             return res.status(401).json({ error: 'Please log in to view your pitches' });
+        }
+
+        // If we have userId but no user object, try to fetch it
+        if (req.session?.userId && !req.session?.user) {
+            const User = (await import('../models/User.js')).default;
+            const user = await User.findById(req.session.userId).select('-password');
+            if (user) {
+                req.session.user = user;
+            } else {
+                return res.status(401).json({ error: 'Session expired. Please log in again.' });
+            }
         }
 
         const Bid = (await import('../models/bid.js')).default;

@@ -75,7 +75,12 @@ export async function logout(req, res) {
       console.error('session destroy', err);
       return res.status(500).json({ error: 'could not log out' });
     }
-    res.clearCookie('connect.sid');
+    // Use the correct cookie name that matches the session configuration
+    res.clearCookie('finvest.sid', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production' && !process.env.CLIENT_ORIGIN?.includes('localhost'),
+      sameSite: 'lax'
+    });
     res.json({ ok: true });
   });
 }

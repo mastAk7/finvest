@@ -1199,14 +1199,35 @@ function BorrowerCards() {
     setLoadingPitches(true);
     try {
       const response = await fetch(`${API_BASE}/pitch/my-pitches`, {
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json'
+        }
       });
-      if (!response.ok) throw new Error('Failed to fetch pitches');
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Session expired - user needs to log in again
+          toast.error('Session expired. Please log in again.');
+          // Trigger logout to reset state
+          setAccount(null);
+          setScreen("landing");
+          setMode(null);
+          return;
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch pitches');
+      }
+      
       const data = await response.json();
       setMyPitches(Array.isArray(data.pitches) ? data.pitches : []);
     } catch (err) {
       console.error('Error fetching pitches:', err);
-      toast.error('Failed to load your loan requests. Please refresh the page.');
+      if (err.message?.includes('Session expired') || err.message?.includes('log in')) {
+        toast.error('Please log in again to view your loan requests.');
+      } else {
+        toast.error('Failed to load your loan requests. Please refresh the page.');
+      }
       setMyPitches([]);
     } finally {
       setLoadingPitches(false);
@@ -1352,6 +1373,7 @@ function BorrowerCards() {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json',
+                          'Accept': 'application/json'
                         },
                         credentials: 'include',
                         body: JSON.stringify({
@@ -1362,7 +1384,15 @@ function BorrowerCards() {
                       });
 
                       if (!response.ok) {
-                        const error = await response.json();
+                        if (response.status === 401) {
+                          // Session expired
+                          toast.error('Session expired. Please log in again.');
+                          setAccount(null);
+                          setScreen("landing");
+                          setMode(null);
+                          return;
+                        }
+                        const error = await response.json().catch(() => ({}));
                         throw new Error(error.error || 'Failed to submit pitch');
                       }
 

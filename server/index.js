@@ -45,16 +45,21 @@ const isLocalhost = clientOrigin.includes('localhost') || clientOrigin.includes(
 // Only use secure cookies in production AND when not using localhost
 const useSecureCookie = isProduction && !isLocalhost;
 
+// Parse client origins for cookie domain configuration
+const clientOrigins = clientOrigin.split(',').map(origin => origin.trim());
+const isVercelDeployment = clientOrigins.some(origin => origin.includes('vercel.app'));
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'replace-me',
     resave: false,
     saveUninitialized: false,
     cookie: {
-      maxAge: 1000 * 60 * 60 * 24,
-      sameSite: 'lax',
-      secure: useSecureCookie,
-      httpOnly: true
+      maxAge: 1000 * 60 * 60 * 24, // 24 hours
+      sameSite: 'lax', // Allows cookies to be sent with cross-site requests
+      secure: useSecureCookie, // Only use secure cookies in production HTTPS
+      httpOnly: true, // Prevents JavaScript access to cookie
+      // Don't set domain - let browser handle it automatically for cross-origin
     },
     name: 'finvest.sid'
   })
