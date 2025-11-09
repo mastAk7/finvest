@@ -1,0 +1,5 @@
+[
+  {"investor_id": "INV_A", "principal": 50000, "interest_annual_pct": 10.0, "tenure_months": 12},
+  {"investor_id": "INV_B", "principal": 60000, "interest_annual_pct": 14.0, "tenure_months": 12},
+  {"investor_id": "INV_C", "principal": 45000, "interest_annual_pct": 8.0, "tenure_months": 12}
+]
