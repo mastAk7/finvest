@@ -49,6 +49,12 @@ const useSecureCookie = isProduction && !isLocalhost;
 const clientOrigins = clientOrigin.split(',').map(origin => origin.trim());
 const isVercelDeployment = clientOrigins.some(origin => origin.includes('vercel.app'));
 
+// When running behind a proxy (e.g., Render), Express needs to trust the proxy
+// so that secure cookies work correctly over HTTPS.
+if (isProduction) {
+  app.set('trust proxy', 1);
+}
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'replace-me',
@@ -56,7 +62,9 @@ app.use(
     saveUninitialized: false,
     cookie: {
       maxAge: 1000 * 60 * 60 * 24, // 24 hours
-      sameSite: 'lax', // Allows cookies to be sent with cross-site requests
+      // In production with cross-site frontend (Vercel) -> backend (Render),
+      // browsers require SameSite=None and Secure for cookies to be sent via XHR/fetch.
+      sameSite: useSecureCookie ? 'none' : 'lax',
       secure: useSecureCookie, // Only use secure cookies in production HTTPS
       httpOnly: true, // Prevents JavaScript access to cookie
       // Don't set domain - let browser handle it automatically for cross-origin

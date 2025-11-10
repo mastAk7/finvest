@@ -79,7 +79,7 @@ export async function logout(req, res) {
     res.clearCookie('finvest.sid', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production' && !process.env.CLIENT_ORIGIN?.includes('localhost'),
-      sameSite: 'lax'
+      sameSite: process.env.NODE_ENV === 'production' && !process.env.CLIENT_ORIGIN?.includes('localhost') ? 'none' : 'lax'
     });
     res.json({ ok: true });
   });
